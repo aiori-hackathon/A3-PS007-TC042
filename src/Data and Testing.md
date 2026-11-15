@@ -48,7 +48,7 @@ $$N_i(t) = \int_{\max(t-W, \; t_i)}^{t} \lambda \, dt \le \lambda \cdot \min(W, 
 Since $\lambda \cdot \min(W, \Delta t_{\text{rot}}) < \theta$, the condition $N_i(t) \ge \theta$ is never satisfied for any address $\text{IP}_i \in \{\text{IP}_1, \text{IP}_2, \dots\}$. Each rotation instantiates a new empty counter $N_{i+1}(t) = 0$, resetting accumulated credit before the threshold $\theta$ can be reached. $\blacksquare$
 
 #### Corollary (PS-007 Immunity)
-In PS-007, packet accounting is keyed on the **ephemeral pseudonym** $P$, where $P = f(\text{session\_anchor})$. Because the physical link session anchor is invariant under RFC 8981 interface identifier (IID) rotations, all successive addresses $\text{IP}_i$ map to the identical pseudonym:
+In PS-007, packet accounting is keyed on the **ephemeral pseudonym** $P$, where $P = f(\text{anchor})$. Because the physical link session anchor is invariant under RFC 8981 interface identifier (IID) rotations, all successive addresses $\text{IP}_i$ map to the identical pseudonym:
 $$\forall i, \quad \mathcal{M}(\text{IP}_i) = P$$
 The accumulated packet count for pseudonym $P$ over window $W$ is:
 $$N_P(t) = \sum_{i} N_i(t) = \lambda \cdot W$$
@@ -62,13 +62,12 @@ Rather than storing persistent hardware MAC addresses, PS-007 derives an ephemer
 
 #### Pseudonym Derivation Function
 The pseudonym $P$ is generated using HMAC-SHA256 truncated to 32 bits (8 hexadecimal characters):
-$$P = \text{HMAC-SHA256}\Big(K_{\text{epoch}}, \; \text{tenant\_id} \parallel \text{session\_id}\Big)\Big|_{0..7}$$
+$$P = \text{HMAC-SHA256}\Big(K_{\text{epoch}}, \; \text{tenant} \parallel \text{session}\Big)\Big|_{0..7}$$
 
-* **$K_{\text{epoch}} \in \{0, 1\}^{256}$:** Ephemeral cryptographic secret generated per epoch via a cryptographically secure pseudorandom number generator (`os.urandom(32)`).
-* **$\text{tenant\_id}$:** Multi-tenant domain separator string (e.g., `"default"`). Enforces cryptographic domain isolation:
-  $$\text{tenant}_A \neq \text{tenant}_B \implies \text{HMAC}(K, \text{tenant}_A \parallel S) \neq \text{HMAC}(K, \text{tenant}_B \parallel S)$$
-* **$\text{session\_id}$:** Invariant link session identifier derived from the switch ingress port:
-  $$\text{session\_id} = \text{SES-PORT} \parallel \text{pad}_2(\text{in\_port})$$
+* **`tenant_id`:** Multi-tenant domain separator string (e.g., `"default"`). Enforces cryptographic domain isolation:
+  $$\mathrm{Tenant}_1 \neq \mathrm{Tenant}_2 \implies \mathrm{HMAC}(K, \mathrm{Tenant}_1 \parallel S) \neq \mathrm{HMAC}(K, \mathrm{Tenant}_2 \parallel S)$$
+* **`session_id`:** Invariant link session identifier derived from the switch ingress port:
+  $$\text{session} = \text{SES-PORT} \parallel \text{pad}_2(\text{port})$$
 
 ---
 
@@ -79,7 +78,7 @@ To ensure zero cross-epoch user correlation, $K_{\text{epoch}}$ is refreshed at 
 #### Zero-Overwriting Algorithm
 To prevent post-compromise memory dump attacks (cold-boot attacks or core dump scraping), $K_{\text{epoch}}$ is allocated as a mutable in-memory bytearray. At epoch transition $t = k \cdot T_{\text{epoch}}$:
 
-$$\forall i \in \{0, \dots, 31\}, \quad K_{\text{epoch}}[i] \leftarrow 0x00$$
+$$\forall i \in \{0, \dots, 31\}, \quad K_{\text{epoch}}[i] \leftarrow 0$$
 $$K_{\text{epoch}} \leftarrow \text{CSPRG}(256)$$
 
 #### Cryptographic Unlinkability Bound
@@ -96,12 +95,15 @@ $$0 \le \text{VID}_{\text{wire}} \le 4095 \quad (2^{12} = 4096)$$
 
 #### Wire Transformation
 When the topology installs the mirroring action:
-$$\text{actions} = \text{push\_vlan:0x8100}, \; \text{set\_field}:(4100 + \text{in\_p}) \to \text{vlan\_vid}$$
+```text
+actions = push_vlan:0x8100, set_field:(4100 + in_port) -> vlan_vid
+```
 the hardware switch or kernel datapath truncates the integer to 12 bits via modulo arithmetic:
-$$\text{VID}_{\text{wire}} = (4100 + \text{in\_p}) \pmod{4096} = 4 + \text{in\_p}$$
+$$\text{VID}_{\text{wire}} = (4100 + p) \pmod{4096} = 4 + p$$
+where $p$ is the physical ingress port number.
 
 #### Mapping Table
-| Host / Interface | OpenFlow `in_port` | Configured Tag ($4100 + \text{in\_p}$) | Physical Wire Tag ($(4100 + \text{in\_p}) \pmod{4096}$) |
+| Host / Interface | OpenFlow `in_port` | Configured Tag ($4100 + p$) | Physical Wire Tag ($(4100 + p) \pmod{4096}$) |
 | :--- | :---: | :---: | :---: |
 | **Router `r1`** | Port 1 | 4101 | **VLAN 5** |
 | **Monitor `m1`** | Port 2 | 4102 | **VLAN 6** |
@@ -167,7 +169,8 @@ $$S_k = \max\Big(0, \; S_{k-1} + (X_k - \mu - K)\Big)$$
 * Threshold $h = 6.0$: Critical decision boundary.
 
 #### Detection Criteria
-$$\text{NDP\_CUSUM\_DRIFT\_ALERT} \iff S_k \ge h$$
+$$\mathrm{Alert}_{\text{CUSUM}} \iff S_k \ge h$$
+*(Trigger event: `NDP_CUSUM_DRIFT_ALERT`)*
 
 When an attacker transmits at $\lambda = 3.0\text{ pps}$, the increment per window is:
 $$\Delta S = 3.0 - 1.0 - 0.5 = +1.5 > 0$$
@@ -186,7 +189,8 @@ Let $\mathcal{T}_W(P)$ represent the set of distinct target addresses queried by
 $$\mathcal{T}_W(P) = \Big\{ \text{tgt} \;\Big|\; \exists (\text{pkt}, t) \in \text{Traffic}(P) \text{ with } t \in [t_{\text{now}} - W, \; t_{\text{now}}], \; \text{pkt.tgt} = \text{tgt} \Big\}$$
 $$\text{Cardinality}(P) = |\mathcal{T}_W(P)|$$
 
-$$\text{NDP\_SCAN\_CARDINALITY\_ALERT} \iff |\mathcal{T}_W(P)| \ge C_{\text{threshold}} \quad (C_{\text{threshold}} = 5)$$
+$$\mathrm{Alert}_{\text{Scan}} \iff |\mathcal{T}_W(P)| \ge C_{\text{threshold}} \quad (C_{\text{threshold}} = 5)$$
+*(Trigger event: `NDP_SCAN_CARDINALITY_ALERT`)*
 
 Normal devices query only the default gateway (`fd00:abcd::1`) and occasionally a peer ($|\mathcal{T}_W| \le 2$). Horizontal subnet scans rapidly exceed $C_{\text{threshold}} = 5$, triggering immediate quarantine.
 

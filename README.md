@@ -32,7 +32,7 @@ In traditional Network Intrusion Detection Systems (NIDS), operators track rotat
 7. **Integrated Web SOC Dashboard:** Clean monitoring web dashboard running on Flask, packaged directly into `monitor.py` on `http://localhost:5000` with dedicated pages for client tracking, 2D topology mapping, attack logs, live stream console, and IP rotation chains.
 
 For complete architectural specifications, module descriptions, and formal security guarantees, see [`src/README.md`](src/README.md).  
-For the complete mathematical formulations, empirical benchmark sweeps, and defense comparison matrices, see [`src/MATH_AND_FINDINGS.md`](src/MATH_AND_FINDINGS.md).
+For the complete mathematical formulations, empirical benchmark sweeps, and defense comparison matrices, see [`src/Data and Testing.md`](src/Data%20and%20Testing.md).
 
 ---
 
