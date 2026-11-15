@@ -558,3 +558,4 @@ To independently verify zero-MAC compliance across the active codebase:
 grep -rn "Ether.src" --exclude-dir=legacy .
 ```
 **Result:** Zero occurrences in active packet processing or attribution logic. Layer 2 Ethernet addresses are unconditionally stripped and dropped at ingress.
+docs: expand PS-007 documentation with system architecture, privacy compliance, and deployment guide
