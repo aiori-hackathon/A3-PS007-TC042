@@ -4,7 +4,6 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 ENV DISPLAY=:0
 
-# Install Open vSwitch, Mininet, radvd, networking tools, and Python dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     openvswitch-switch \
     openvswitch-common \
@@ -36,14 +35,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Invalidate cache for code copy so new changes are always included
 ARG CACHEBUST=1
 COPY . /app
 
-# Grant execution rights to entrypoint script (supporting builds from root or src)
 RUN if [ -f /app/docker-entrypoint.sh ]; then chmod +x /app/docker-entrypoint.sh; elif [ -f /app/src/docker-entrypoint.sh ]; then chmod +x /app/src/docker-entrypoint.sh && cp /app/src/docker-entrypoint.sh /app/docker-entrypoint.sh; fi
 
-# Expose ports for Web SOC UI and WebSocket stream
 EXPOSE 5000 8765
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
