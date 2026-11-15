@@ -50,3 +50,4 @@ Navigate to:
 http://localhost:5000
 ```
 *(or specify a custom port: `python3 app.py --port 8080`)*
+docs: update SOC dashboard architecture, telemetry features, and setup instructions
