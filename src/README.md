@@ -25,6 +25,7 @@
 8. [REST API & Telemetry Event Schema](#8-rest-api--telemetry-event-schema)
 9. [Zero-MAC Compliance Verification Command](#9-zero-mac-compliance-verification-command)
 10. [Mathematical Foundations, Benchmark Findings & Comparisons](Data%20and%20Testing.md)
+11. [AIORI Infrastructure & API Integration Blueprint (30 Marks)](AIORI_INTEGRATION.md)
 
 ---
 
@@ -45,6 +46,7 @@ Furthermore, attackers exploit RFC 8981 address rotation by generating **rotatin
 4. **Passive RFC 4862 DAD Tracking (Primary Mode A):** IoT clients remain 100% black boxes running standard Linux kernel networking. Rotations are captured passively via Duplicate Address Detection Neighbor Solicitations with strict rate bounding.
 5. **Multi-Layer Protocol Anomaly Detection:** Replaces flawed Median Absolute Deviation (MAD) heuristics with RFC 4861 token buckets, $n$-of-$m$ hysteresis, CUSUM drift detection, target cardinality scanning, and RFC 6105 RA-Guard.
 6. **Web Dashboard:** Clean, high-performance monitoring web dashboard running on Flask with dedicated pages for client tracking, 2D topology mapping, attack logs, live stream console, and IP rotation chains.
+7. **AIORI-IMN Edge Measurement Integration:** Standardized telemetry and probe APIs designed for upstream integration with the national AIORI infrastructure. For the complete 30-mark implementation guide and code skeletons, see [`AIORI_INTEGRATION.md`](AIORI_INTEGRATION.md).
 
 ---
 
