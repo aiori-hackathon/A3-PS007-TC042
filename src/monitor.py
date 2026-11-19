@@ -9,7 +9,7 @@ r"""
     |_|  |_| \_|_|       HMAC-SHA256 PSEUDONYM SYSTEM
 ==============================================================================
 """
-
+from typing import Optional
 import os
 import sys
 import json
